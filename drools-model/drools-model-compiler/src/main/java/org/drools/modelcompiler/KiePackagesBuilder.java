@@ -221,6 +221,20 @@ public class KiePackagesBuilder {
                     pkg.addRule( ruleImpl );
                 }
             }
+            for (Rule rule : model.getRules()) {
+                KnowledgePackageImpl pkg = ( KnowledgePackageImpl ) packages.computeIfAbsent( rule.getPackage(), this::createKiePackage );
+                //look for parent rules and set RuleImpl
+                if (rule instanceof org.drools.model.impl.RuleImpl){
+                    org.drools.model.impl.RuleImpl ruleImpInput = (org.drools.model.impl.RuleImpl) rule;
+                    //Query and get object instead of using String
+                    if ( null != ruleImpInput.getParent() && null != pkg.getRule( ruleImpInput.getParent().getName() ) ) {
+                        RuleImpl ruleImpl = pkg.getRule( rule.getName());
+                        RuleImpl parentRuleImpl = pkg.getRule( ruleImpInput.getParent().getName());
+                        ruleImpl.setParent( parentRuleImpl );
+                        ruleImpl.setParentInformativeOnly(true);
+                    }
+                }
+            }
         }
         return new CanonicalKiePackages(packages);
     }

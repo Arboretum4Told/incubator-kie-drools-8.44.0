@@ -109,6 +109,8 @@ import org.drools.mvel.parser.printer.PrintUtil;
 import org.drools.mvelcompiler.ConstraintCompiler;
 import org.drools.mvelcompiler.MvelCompiler;
 import org.drools.mvelcompiler.context.MvelCompilerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -122,6 +124,8 @@ import static org.drools.util.ClassUtils.toRawClass;
 public class DrlxParseUtil {
 
     public static final String THIS_PLACEHOLDER = "_this";
+
+    private static final Logger logger          = LoggerFactory.getLogger(DrlxParseUtil.class);
 
     private static final ConcurrentMap<String, Method> ACCESSOR_CACHE = new ConcurrentHashMap<>();
 
@@ -395,7 +399,7 @@ public class DrlxParseUtil {
     private static RemoveRootNodeResult findRootNodeViaScopeRec(Expression expr, LinkedList<Expression> acc) {
 
         if (expr.isArrayAccessExpr()) {
-            throw new RuntimeException("This doesn't work on arrayAccessExpr convert them to a method call");
+            logger.debug("This might not work on arrayAccessExpr convert them to a method call: {}", expr );
         }
 
         if (expr instanceof EnclosedExpr) {

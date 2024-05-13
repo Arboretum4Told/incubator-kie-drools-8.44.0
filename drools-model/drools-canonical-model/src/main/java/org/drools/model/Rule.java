@@ -52,4 +52,6 @@ public interface Rule extends NamedModelItem {
 
     String getUnit();
 
+    Rule getParent();
+
 }

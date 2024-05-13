@@ -231,6 +231,9 @@ public class CoercedExpression {
             } else {
                 throw new CoercedExpressionException(new InvalidExpressionErrorResult("Cannot coerce String " + expressionValue + " to boolean!"));
             }
+        } else if ("Objects.EMPTY".equals(typedExpression.getExpression().toString())) {
+            final TypedExpression coercedExpression = typedExpression.cloneWithNewExpression(new NullLiteralExpr());
+            return coercedExpression;
         } else {
             throw new CoercedExpressionException(new InvalidExpressionErrorResult("Cannot coerce " + typedExpression.getType() + " to boolean!"));
         }
