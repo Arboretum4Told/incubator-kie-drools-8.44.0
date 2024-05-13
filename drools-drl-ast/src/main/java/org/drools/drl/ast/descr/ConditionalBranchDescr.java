@@ -81,6 +81,10 @@ public class ConditionalBranchDescr extends BaseDescr {
             }
             if (b instanceof PatternDescr) {
                 patternRelated = (PatternDescr) b; // keep the closest PatternDescr
+                // look for patternDescr by pattern text
+                if (this.getCondition().getContent().toString().startsWith(patternRelated.getIdentifier())) {
+                    break;
+                }
             }
         }
         return patternRelated;

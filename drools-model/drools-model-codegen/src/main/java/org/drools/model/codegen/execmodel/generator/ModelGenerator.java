@@ -16,14 +16,8 @@
 
 package org.drools.model.codegen.execmodel.generator;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.github.javaparser.ast.Modifier;
@@ -225,6 +219,17 @@ public class ModelGenerator {
             context.addNamedConsequence(kv.getKey(), kv.getValue().toString());
         }
 
+        // add named consequences from parent rules
+        if ( null != ruleDescr.getParentName()) {
+            final Optional<RuleDescr> parentRuleDescOptional = packageDescr.getRules().stream().filter(rd -> rd.getName().equals(ruleDescr.getParentName())).findFirst();
+            if (parentRuleDescOptional.isPresent()){
+                final RuleDescr parentRuleDesc = parentRuleDescOptional.get();
+                for(Entry<String, Object> kv : parentRuleDesc.getNamedConsequences().entrySet()) {
+                    context.addNamedConsequence(kv.getKey(), kv.getValue().toString());
+                }
+            }
+        }
+
         BlockStmt ruleVariablesBlock = context.getRuleVariablesBlock();
 
         Optional<AndDescr> optExtendedLhs = getExtendedLhs(context, packageDescr, ruleDescr, new HashSet<>());
@@ -248,6 +253,11 @@ public class ModelGenerator {
             ruleCall.addArgument( toStringLiteral( ruleDescr.getNamespace() ) );
         }
         ruleCall.addArgument( toStringLiteral( ruleDescr.getName() ) );
+
+        // add parent rule
+        if (ruleDescr.getParentName() != null){
+            ruleCall.addArgument( toStringLiteral(ruleDescr.getParentName()) );
+        }
 
         RuleUnitDescription ruleUnitDescr = context.getRuleUnitDescr();
         MethodCallExpr buildCallScope = ruleUnitDescr != null ?
@@ -316,10 +326,12 @@ public class ModelGenerator {
      */
     private static List<MethodCallExpr> ruleAttributes(RuleContext context, RuleDescr ruleDescr) {
         final List<MethodCallExpr> ruleAttributes = new ArrayList<>();
-        final Set<Entry<String, AttributeDescr>> excludingDialect =
-                ruleDescr.getAttributes().entrySet()
-                        .stream().filter(r -> !r.getKey().equals("dialect"))
-                        .collect(Collectors.toSet());
+        final Set<Entry<String, AttributeDescr>> excludingDialect = ruleDescr.getAttributes().entrySet()
+                .stream().filter(r -> !r.getKey().equals("dialect"))
+                .sorted(Entry.comparingByKey(Comparator.reverseOrder())) // sort while streaming
+//              .sorted(Entry.comparingByKey()) // sort while streaming
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
         for (Entry<String, AttributeDescr> as : excludingDialect) {
             MethodCallExpr attributeCall = new MethodCallExpr(null, ATTRIBUTE_CALL);
             attributeCall.addArgument(attributesMap.get(as.getKey()));

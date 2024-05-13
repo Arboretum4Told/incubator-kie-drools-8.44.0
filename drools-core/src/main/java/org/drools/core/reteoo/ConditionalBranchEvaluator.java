@@ -19,13 +19,19 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.drools.core.common.ReteEvaluator;
 import org.drools.base.common.RuleBasePartitionId;
 import org.drools.base.rule.EvalCondition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConditionalBranchEvaluator implements Externalizable {
 
+    private static final Logger log = LoggerFactory.getLogger(ConditionalBranchEvaluator.class);
     private EvalCondition condition;
 
     private ConditionalBranchEvaluator elseBranchEvaluator;
@@ -90,6 +96,31 @@ public class ConditionalBranchEvaluator implements Externalizable {
                                          ReteEvaluator reteEvaluator,
                                          Object context) {
         tuple = tuple.skipEmptyHandles();
+        if (condition.getRequiredDeclarations().length > 0){
+            final List<String> requiredDeclarations = Arrays
+                    .stream(condition.getRequiredDeclarations())
+                    .map(declaration -> declaration.getPattern().getObjectType().getClassName())
+                    .collect(Collectors.toList());
+            boolean tupleFound = false;
+
+            if (!requiredDeclarations.contains(tuple.getFactHandle().getObject().getClass().getName())){
+                log.warn("requiredDeclarations: {}, tuple missmatch for {}", requiredDeclarations, tuple.getFactHandle().getObject().getClass().getName());
+            }
+
+            while (!tupleFound){
+                log.debug("requiredDeclarations: {}, looking for {}", requiredDeclarations, tuple.getFactHandle().getObject().getClass().getName());
+
+                if (requiredDeclarations.contains(tuple.getFactHandle().getObject().getClass().getName())){
+                    // accept this tuple
+                    tupleFound = true;
+                } else if (tuple.getParent() != null){
+                    tuple = tuple.getParent();
+                    log.debug("requiredDeclarations: {}, got parent {}", requiredDeclarations, tuple.getFactHandle().getObject().getClass().getName());
+                } else {
+                    throw new RuntimeException("tuple not found for condition "+condition);
+                }
+            }
+        }
         if ( condition.isAllowed( tuple, reteEvaluator, context ) ) {
             return conditionalExecution;
         }

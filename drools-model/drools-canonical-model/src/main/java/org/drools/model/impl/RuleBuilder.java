@@ -28,11 +28,13 @@ import org.drools.model.RuleItemBuilder;
 public class RuleBuilder {
 
     public static final String DEFAULT_PACKAGE = "defaultpkg";
+    public static final String DEFAULT_PARENT = "NONE";
 
     private final ViewBuilder viewBuilder;
 
     private final String pkg;
     private final String name;
+    private final String parent;
 
     private String unit;
 
@@ -40,13 +42,21 @@ public class RuleBuilder {
     private Map<String, Object> metaAttributes = new HashMap<>();
 
     public RuleBuilder( ViewBuilder viewBuilder, String name ) {
-        this( viewBuilder, DEFAULT_PACKAGE, name);
+        this( viewBuilder, DEFAULT_PACKAGE, name, DEFAULT_PARENT);
     }
 
     public RuleBuilder( ViewBuilder viewBuilder, String pkg, String name ) {
         this.viewBuilder = viewBuilder;
         this.pkg = pkg;
         this.name = name;
+        this.parent = DEFAULT_PARENT;
+    }
+
+    public RuleBuilder( ViewBuilder viewBuilder, String pkg, String name, String parent ) {
+        this.viewBuilder = viewBuilder;
+        this.pkg = pkg;
+        this.name = name;
+        this.parent = parent;
     }
 
     public RuleBuilder unit(String unit) {
@@ -82,6 +92,6 @@ public class RuleBuilder {
     }
 
     public Rule build( RuleItemBuilder<?>... viewItemBuilders ) {
-        return new RuleImpl(pkg, name, unit, viewBuilder.apply(viewItemBuilders), attributes, metaAttributes);
+        return new RuleImpl(pkg, name, unit, viewBuilder.apply(viewItemBuilders), attributes, metaAttributes, parent);
     }
 }

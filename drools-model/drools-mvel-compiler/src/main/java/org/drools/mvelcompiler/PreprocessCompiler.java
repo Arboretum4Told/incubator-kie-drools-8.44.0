@@ -27,8 +27,12 @@ import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.BreakStmt;
+import com.github.javaparser.ast.stmt.IfStmt;
 import org.drools.mvel.parser.MvelParser;
 import org.drools.mvel.parser.ast.expr.ModifyStatement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.github.javaparser.ast.NodeList.nodeList;
 
@@ -36,6 +40,7 @@ import static com.github.javaparser.ast.NodeList.nodeList;
 // * the modify statements are processed
 // * multi line text blocks are converted to Strings
 public class PreprocessCompiler {
+    private static final Logger logger          = LoggerFactory.getLogger(PreprocessCompiler.class);
 
     private static final PreprocessPhase preprocessPhase = new PreprocessPhase();
 
@@ -67,9 +72,37 @@ public class PreprocessCompiler {
                     PreprocessPhase.PreprocessPhaseResult invoke = preprocessPhase.invoke(s);
                     usedBindings.addAll(invoke.getUsedBindings());
                     parentNode.ifPresent(p -> {
-                        BlockStmt parentBlock = (BlockStmt) p;
-                        for (String modifiedFact : invoke.getUsedBindings()) {
-                            parentBlock.addStatement(new MethodCallExpr(null, "update", nodeList(new NameExpr(modifiedFact))));
+                        if (p instanceof BlockStmt){
+                            BlockStmt parentBlock = (BlockStmt) p;
+                            if(invoke.getUsedBindings().isEmpty()){
+                                int lastBlockIdx = parentBlock.getStatements().size();
+                                if (parentBlock.getStatements().getLast().get() instanceof BreakStmt){
+                                    lastBlockIdx = lastBlockIdx - 1;
+                                }
+                                parentBlock.addStatement(lastBlockIdx, new MethodCallExpr(null, "update", nodeList(s.getModifyObject().asNameExpr())));
+                            } else {
+                                for (String modifiedFact : invoke.getUsedBindings()) {
+                                    int lastBlockIdx = parentBlock.getStatements().size();
+                                    if (parentBlock.getStatements().getLast().get() instanceof BreakStmt){
+                                        lastBlockIdx = lastBlockIdx - 1;
+                                    }
+                                    parentBlock.addStatement(lastBlockIdx, new MethodCallExpr(null, "update", nodeList(new NameExpr(modifiedFact))));
+                                }
+                            }
+                        } else if (p instanceof IfStmt) {
+                            Optional<Node> blockNode = p.getChildNodes().stream().filter(node -> node instanceof BlockStmt).findFirst();
+                            blockNode.ifPresent(ifBlock -> {
+                                if (ifBlock instanceof BlockStmt){
+                                    BlockStmt internalBlock = (BlockStmt) ifBlock;
+                                    for (String modifiedFact : invoke.getUsedBindings()) {
+                                        internalBlock.addStatement(new MethodCallExpr(null, "update", nodeList(new NameExpr(modifiedFact))));
+                                    }
+                                } else {
+                                    logger.warn("Found modify statement with incompatible type "+ p.getClass()+" inside if" +": "+mvelBlock);
+                                }
+                            });
+                        } else {
+                            logger.warn("Found modify statement with incompatible type "+ p.getClass()+": "+mvelBlock);
                         }
                     });
                     s.remove();

@@ -81,6 +81,10 @@ public class RuleImpl implements Externalizable,
 
     /** Parent Rule Name, optional */
     private RuleImpl                 parent;
+    /**
+     * parent rule is used here only for information and to retrieve rules parent info from global drools variable
+     */
+    private boolean                 parentInformativeOnly = false;
 
     private List<RuleImpl>           children;
 
@@ -568,7 +572,7 @@ public class RuleImpl implements Externalizable,
             lhs.getChildren().addAll( fromChild.getChildren() );
         }
         //move recursively up the tree
-        if ( rule.parent != null ) {
+        if ( rule.parent != null && !this.parentInformativeOnly) {
             return getExtendedLhs( rule.parent,
                                    lhs );
         }
@@ -804,6 +808,15 @@ public class RuleImpl implements Externalizable,
 
     public RuleImpl getParent() {
         return parent;
+    }
+
+    public boolean isParentInformativeOnly() {
+        return parentInformativeOnly;
+    }
+
+    public RuleImpl setParentInformativeOnly(boolean parentInformativeOnly) {
+        this.parentInformativeOnly = parentInformativeOnly;
+        return this;
     }
 
     public synchronized void addChild(RuleImpl child) {

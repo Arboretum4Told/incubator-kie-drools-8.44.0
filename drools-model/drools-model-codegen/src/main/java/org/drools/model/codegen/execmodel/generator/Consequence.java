@@ -240,7 +240,7 @@ public class Consequence {
                    .map(Optional::get)
                    .filter(sc -> sc instanceof ArrayAccessExpr)
                    .map(aae -> (ArrayAccessExpr)aae)
-                   .filter(aae -> aae.getName().asNameExpr().getNameAsString().equals("channels"))
+                   .filter(aae -> aae.isNameExpr() && aae.getName().asNameExpr().getNameAsString().equals("channels"))
                    .forEach(aae -> {
                        String channelName = aae.getIndex().asStringLiteralExpr().asString();
                        MethodCallExpr mce = new MethodCallExpr(new NameExpr("drools"), GET_CHANNEL_CALL);
